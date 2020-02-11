@@ -1,3 +1,3 @@
 # coliding_galaxies
-coliding galaxies animation
+colliding galaxies animation
 http://raw.githack.com/rolandblok/coliding_galaxies/master/index.html
