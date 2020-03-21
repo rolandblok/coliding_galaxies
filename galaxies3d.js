@@ -15,10 +15,10 @@ canvas.addEventListener('click', function() {
   restart = true;
 }, false);
 
-const G = 10000.0; // gravitation constant
+const G = 5000.0; // gravitation constant
 
 function resize() {
-  console.log("resize");        
+  console.log("resize " + w + " " + h);        
   canvas.width  = window.innerWidth;
   w = canvas.width;
   canvas.height = window.innerHeight;
