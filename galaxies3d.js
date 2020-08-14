@@ -1,6 +1,10 @@
-
-var nr_o_galaxies = 3;
-var nr_o_stars_in_galaxy = 1000;
+var glb = {}
+glb.G = 5000.0; // gravitation constant
+glb.nr_o_galaxies = 3;
+glb.nr_o_stars_in_galaxy = 1000;
+glb.simulation_duration_s = 10;
+glb.inner_diameter = 5
+glb.outer_diameter = 50
 
 
 var canvas = document.getElementById("canvas");
@@ -15,7 +19,6 @@ canvas.addEventListener('click', function() {
   restart = true;
 }, false);
 
-const G = 5000.0; // gravitation constant
 
 function resize() {
   console.log("resize " + w + " " + h);        
@@ -24,6 +27,15 @@ function resize() {
   canvas.height = window.innerHeight;
   h = window.innerHeight
 }
+
+this.gui = new dat.GUI();
+this.gui.add(glb, "G", 1)
+this.gui.add(glb, "nr_o_galaxies", 2,10, 1)
+this.gui.add(glb, "simulation_duration_s", 1,100, 1)
+gui_galaxy_spec = this.gui.addFolder("galaxy specs")
+gui_galaxy_spec.add(glb, "inner_diameter", 5, 100, 1)
+gui_galaxy_spec.add(glb, "outer_diameter", 10, 100, 1)
+
 
 /**
  *
@@ -45,9 +57,9 @@ function BlackHole(M, p, v) {
      	  var d_z = black_hole.p[2] - this.p[2];
         var d2 = d_x * d_x + d_y * d_y + d_z * d_z;
         var d = Math.sqrt(d2);
-        var a_x = G * black_hole.M * d_x / (d2 * d);
-        var a_y = G * black_hole.M * d_y / (d2 * d);
-        var a_z = G * black_hole.M * d_z / (d2 * d);
+        var a_x = glb.G * black_hole.M * d_x / (d2 * d);
+        var a_y = glb.G * black_hole.M * d_y / (d2 * d);
+        var a_z = glb.G * black_hole.M * d_z / (d2 * d);
 
         v[0] += a_x * dt;
         v[1] += a_y * dt;
@@ -79,9 +91,9 @@ function Star(p, v) {
       var d_z = black_hole.p[2] - this.p[2];
       var d2 = d_x * d_x + d_y * d_y + d_z * d_z;
       var d = Math.sqrt(d2);
-      var a_x = G * black_hole.M * d_x / (d2 * d);
-      var a_y = G * black_hole.M * d_y / (d2 * d);
-      var a_z = G * black_hole.M * d_z / (d2 * d);
+      var a_x = glb.G * black_hole.M * d_x / (d2 * d);
+      var a_y = glb.G * black_hole.M * d_y / (d2 * d);
+      var a_z = glb.G * black_hole.M * d_z / (d2 * d);
 
       v[0] += a_x * dt;
       v[1] += a_y * dt;
@@ -104,7 +116,7 @@ var black_holes = [];
 function create_universe() {
 	stars = [];
   black_holes = [];
-  for (var i = 0; i < nr_o_galaxies; i++){
+  for (var i = 0; i < glb.nr_o_galaxies; i++){
     var p = [0.0, 100.0 + 100.0*Math.random(), 0.0]
     var angle = Math.random() * 2.0 * Math.PI;
     p = rotz(angle, p);
@@ -119,16 +131,16 @@ function create_universe() {
 }
 
 function create_galaxy(gpos, vnul) {
-  var dmin = 5.0,
-    dmax = 50.0;
-  var n_stars = nr_o_stars_in_galaxy;
+  var dmin = glb.inner_diameter,
+      dmax = glb.outer_diameter;
+  var n_stars = glb.nr_o_stars_in_galaxy;
   var M = 15.0 * n_stars;
   var ang_y = Math.random()*2.0*Math.PI;
   var ang_x = Math.random()*2.0*Math.PI;
 	
   for (i = 0; i < n_stars; i++) {
     var d = dmin + Math.random() * dmax;
-    var V = Math.sqrt(G * M / d);
+    var V = Math.sqrt(glb.G * M / d);
     var angle = Math.random() * 2.0 * Math.PI;
     var p = [d * Math.cos(angle), -1.0*d * Math.sin(angle), 0.0];
     var v = [V * Math.sin(angle), V * Math.cos(angle), 0.0];
@@ -165,7 +177,7 @@ function drawAndUpdate(cur_time) {
     last_fps_time = cur_time; // first round
     last_drw_time = cur_time;
   }
-  if ((restart) || (total_time > 10000)) {
+  if ((restart) || (total_time > glb.simulation_duration_s * 1000)) {
   	create_universe();
     restart = false;
     total_time = 0;
