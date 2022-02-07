@@ -34,7 +34,7 @@ function resize() {
 // RECORD CODE
 // =========
 this.capturer = new CCapture({
-  framerate: 5,
+  framerate: 60,
   format: "png",
   name: "movie",
   quality: 100,
