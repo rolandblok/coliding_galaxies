@@ -1,10 +1,11 @@
 var glb = {}
-glb.G = 5000.0; // gravitation constant
+glb.G = 2500.0; // gravitation constant
 glb.nr_o_galaxies = 3;
 glb.nr_o_stars_in_galaxy = 1000;
-glb.simulation_duration_s = 10;
+glb.simulation_duration_s = 20;
 glb.inner_diameter = 5
 glb.outer_diameter = 50
+glb.init_dist = 150
 
 
 var canvas = document.getElementById("canvas");
@@ -28,6 +29,34 @@ function resize() {
   h = window.innerHeight
 }
 
+
+// =========
+// RECORD CODE
+// =========
+this.capturer = new CCapture({
+  framerate: 5,
+  format: "png",
+  name: "movie",
+  quality: 100,
+  verbose: true,
+});
+this.record_time = 0
+this.cur_time = 0
+
+this.record = function() {
+  console.log("recording")
+  this.capture_on = true
+  restart = true
+  this.capturer.start()
+        //  d:\ffmpeg\bin\ffmpeg -framerate 60  -i %07d.png -vf format=yuv420p movie.mp4
+        // ffmpeg -framerate 60  -i %07d.png -vf format=yuv420p movie.mp4
+
+}
+
+
+// =========
+// GUI CODE
+// =========
 this.gui = new dat.GUI();
 this.gui.add(glb, "G", 1)
 this.gui.add(glb, "nr_o_galaxies", 2,10, 1)
@@ -35,6 +64,12 @@ this.gui.add(glb, "simulation_duration_s", 1,100, 1)
 gui_galaxy_spec = this.gui.addFolder("galaxy specs")
 gui_galaxy_spec.add(glb, "inner_diameter", 5, 100, 1)
 gui_galaxy_spec.add(glb, "outer_diameter", 10, 100, 1)
+gui_galaxy_spec.add(glb, "init_dist").min(50).max(500).step(10)
+let gui_record_folder = this.gui.addFolder("record")
+gui_record_folder.add(this, "record")
+gui_record_folder.add(this, "cur_time").listen()
+gui_record_folder.add(this, "record_time").listen()
+
 
 
 /**
@@ -117,7 +152,7 @@ function create_universe() {
 	stars = [];
   black_holes = [];
   for (var i = 0; i < glb.nr_o_galaxies; i++){
-    var p = [0.0, 100.0 + 100.0*Math.random(), 0.0]
+    var p = [0.0, glb.init_dist + glb.init_dist*Math.random(), 0.0]
     var angle = Math.random() * 2.0 * Math.PI;
     p = rotz(angle, p);
     p = sumv(p, [w/2, h/2, 0]);
@@ -169,19 +204,36 @@ var fps = 0;
 var fps_cntr = 0;
 var last_fps_time = 0;
 var last_drw_time = 0;
-var total_time = 0;
+var total_time_ms = 0;
 
 function drawAndUpdate(cur_time) {
+  this.cur_time = cur_time
+  this.record_time = total_time_ms
+  let del_time_ms =  (cur_time - last_drw_time)
+  total_time_ms += del_time_ms
+
+
 
   if (last_fps_time == 0) {
     last_fps_time = cur_time; // first round
     last_drw_time = cur_time;
   }
-  if ((restart) || (total_time > glb.simulation_duration_s * 1000)) {
+  if ((this.capture_on) && (total_time_ms > glb.simulation_duration_s * 1000)) {
+    restart = true;
+    if (this.capture_on) {
+      this.capturer.stop()
+      this.capturer.save()
+      this.capture_on = false
+    }
+  }
+
+  if ((restart) || (total_time_ms > glb.simulation_duration_s * 1000)) {
   	create_universe();
     restart = false;
-    total_time = 0;
+    total_time_ms = 0;      
   }
+
+
   if ((cur_time - last_fps_time) > 1000) {
     fps = fps_cntr;
     fps_cntr = 1;
@@ -189,21 +241,24 @@ function drawAndUpdate(cur_time) {
   } else {
     fps_cntr += 1;
   }
-  total_time +=  (cur_time - last_drw_time);
-  delta_time_s = 0.001;
+
+  let delta_time_s = 0.001;
 
   // draw background
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, w, h);
-  // draw FPS
-  ctx.fillStyle = '#ffffff';
-  ctx.font = "10px Arial";
-  ctx.fillText("fps : " + fps, 10, 10);
-  // draw test square
-  ctx.fillStyle = '#00FF00';
-  ctx.fillRect(stand, 0, 4, 4);
-  stand += 1;
-  if (stand > w) stand = 0;
+
+  if (!this.capture_on)  {
+    // draw FPS
+    ctx.fillStyle = '#ffffff';
+    ctx.font = "10px Arial";
+    ctx.fillText("fps : " + fps, 10, 10);
+    // draw test square
+    ctx.fillStyle = '#00FF00';
+    ctx.fillRect(stand, 0, 4, 4);
+    stand += 1;
+    if (stand > w) stand = 0;
+  }
 
   // update stars
   if (!pause) {
@@ -219,6 +274,11 @@ function drawAndUpdate(cur_time) {
     star.draw(ctx);
   for (var black_hole of black_holes) 
     black_hole.draw(ctx);
+
+
+  if (this.capture_on) {
+      this.capturer.capture(canvas)
+  }
 
   last_drw_time = cur_time;
   requestAnimationFrame(drawAndUpdate);
